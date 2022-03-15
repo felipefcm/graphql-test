@@ -3,7 +3,7 @@ import 'reflect-metadata'
 import express from 'express'
 import { graphqlHTTP } from 'express-graphql'
 
-import { Arg, buildSchema, Field, FieldResolver, ID, ObjectType, Query, Resolver, Root } from 'type-graphql'
+import { Arg, Args, ArgsType, buildSchema, Field, FieldResolver, ID, InputType, Int, Mutation, ObjectType, Query, Resolver, Root } from 'type-graphql'
 
 import * as dataset from './data'
 
@@ -30,6 +30,15 @@ class Hobby {
 	name: string
 }
 
+@InputType()
+class CreatePersonInput implements Partial<Person> {
+	@Field()
+	name: string
+
+	@Field(type => [Int])
+	hobbies: number[]
+}
+
 @Resolver(Person)
 class PersonResolver {
 	@Query(returns => Person)
@@ -44,7 +53,21 @@ class PersonResolver {
 
 	@FieldResolver()
 	async hobbies(@Root() person: Person) {
-		return person.hobbies.map(hId => dataset.hobbies.find(hobby => hobby.id === hId))
+		return person.hobbies.map(hId =>
+			dataset.hobbies.find(hobby => hobby.id === hId)
+		)
+	}
+
+	@Mutation(returns => Person)
+	async addPerson(@Arg('person') input: CreatePersonInput) {
+		const newPerson: Person = {
+			id: Math.trunc(Math.random() * 1000),
+			name: input.name,
+			hobbies: input.hobbies,
+		}
+
+		dataset.people.push(newPerson)
+		return newPerson
 	}
 }
 
