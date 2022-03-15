@@ -1,0 +1,11 @@
+{
+  "extends": "@tsconfig/node14",
+  "include": ["stacks", "src"],
+  "compilerOptions": {
+    "target": "ESNext",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "sourceMap": true,
+  }
+}

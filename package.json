@@ -5,7 +5,6 @@
   "author": "Felipe Martins <ffcm@outlook.com>",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon src/server.ts"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",

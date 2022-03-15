@@ -1,20 +1,18 @@
 import 'reflect-metadata'
 
-import express from 'express'
-import { graphqlHTTP } from 'express-graphql'
-
-import { Arg, Args, ArgsType, buildSchema, Field, FieldResolver, ID, InputType, Int, Mutation, ObjectType, Query, Resolver, Root } from 'type-graphql'
+import { Arg, buildSchemaSync, Field, FieldResolver, ID, InputType, Int, Mutation, ObjectType, Query, Resolver, Root } from 'type-graphql'
 
 import * as dataset from './data'
-
-const app = express()
+import { ApolloServer } from 'apollo-server-lambda'
+import { printSchema } from 'graphql'
+import { GraphQLString } from 'graphql'
 
 @ObjectType()
 class Person {
 	@Field(type => ID)
 	id: number
 
-	@Field()
+	@Field(type => GraphQLString)
 	name: string
 
 	@Field(type => [Hobby])
@@ -26,13 +24,13 @@ class Hobby {
 	@Field(type => ID)
 	id: number
 
-	@Field()
+	@Field(type => GraphQLString)
 	name: string
 }
 
 @InputType()
 class CreatePersonInput implements Partial<Person> {
-	@Field()
+	@Field(type => GraphQLString)
 	name: string
 
 	@Field(type => [Int])
@@ -42,7 +40,7 @@ class CreatePersonInput implements Partial<Person> {
 @Resolver(Person)
 class PersonResolver {
 	@Query(returns => Person)
-	async person(@Arg('id') id: number) {
+	async person(@Arg('id', () => Int) id: number) {
 		return dataset.people.find(p => p.id === id)
 	}
 
@@ -59,7 +57,7 @@ class PersonResolver {
 	}
 
 	@Mutation(returns => Person)
-	async addPerson(@Arg('person') input: CreatePersonInput) {
+	async addPerson(@Arg('person', () => CreatePersonInput) input: CreatePersonInput) {
 		const newPerson: Person = {
 			id: Math.trunc(Math.random() * 1000),
 			name: input.name,
@@ -74,7 +72,7 @@ class PersonResolver {
 @Resolver(Hobby)
 class HobbyResolver {
 	@Query(returns => Hobby)
-	async hobby(@Arg('id') id: number) {
+	async hobby(@Arg('id', () => Int) id: number) {
 		return dataset.hobbies.find(h => h.id === id)
 	}
 
@@ -84,18 +82,14 @@ class HobbyResolver {
 	}
 }
 
-const init = async () => {
+const schema = buildSchemaSync({
+	resolvers: [PersonResolver, HobbyResolver]
+})
 
-	const schema = await buildSchema({
-		resolvers: [PersonResolver, HobbyResolver]
-	})
+console.log(`SCHEMA`, printSchema(schema))
 
-	app.use('/graphql', graphqlHTTP({
-		graphiql: true,
-		schema
-	}))
+const server = new ApolloServer({
+	schema,
+})
 
-	app.listen(3000, () => console.log(`Server running...`))
-}
-
-init()
+export const handler = server.createHandler()
